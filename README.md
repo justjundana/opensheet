@@ -76,40 +76,50 @@ Or directly with cargo:
 cargo run --release
 ```
 
-## 📡 Usage Instructions
+## 📡 API Reference
 
-### Accessing Spreadsheet Data
+### Endpoints
 
-The API follows this URL pattern:
+#### 1. Get Sheet Data
+
+Retrieves data from a specific sheet in a Google Spreadsheet.
 
 ```
 GET http://localhost:8080/{spreadsheet_id}/{sheet_name}
 ```
 
-Where:
+Parameters:
 
-- `spreadsheet_id` is the ID of your Google Sheet (found in the URL of your sheet)
-- `sheet_name` is either the name of the sheet or its index number (starting at 1)
+- `spreadsheet_id`: The ID of your Google Sheet (found in the URL of your sheet)
+- `sheet_name`: Either the name of the sheet or its index number (starting at 1)
 
-### Examples
+Query Parameters:
 
-**Access a sheet by name:**
+- `range` (optional): A specific range of cells (e.g., `A2:F100`). Default is `A1:ZZ`
 
-```
-GET http://localhost:8080/1wXNAh6PVCDf5iSqKIhf1AwTH_GPtW_hjlnaFamEI-7o/Sheet1
-```
+#### 2. List All Sheets
 
-**Access a sheet by index:**
+Lists all sheets in a spreadsheet.
 
 ```
-GET http://localhost:8080/1wXNAh6PVCDf5iSqKIhf1AwTH_GPtW_hjlnaFamEI-7o/1
+GET http://localhost:8080/{spreadsheet_id}/sheets
 ```
 
-**Note:** The first sheet is indexed starting from **1**, not **0**.
+Parameters:
+
+- `spreadsheet_id`: The ID of your Google Sheet
+
+#### 3. Health Check
+
+Checks if the service is running properly.
+
+```
+GET http://localhost:8080/health
+```
 
 ### Response Format
 
-✅ Successful responses have this structure:
+#### Successful Response (Sheet Data)
 
 ```json
 {
@@ -128,7 +138,26 @@ GET http://localhost:8080/1wXNAh6PVCDf5iSqKIhf1AwTH_GPtW_hjlnaFamEI-7o/1
 }
 ```
 
-❌ Error responses look like this:
+#### Successful Response (Sheet List)
+
+```json
+{
+  "transaction_code": "uuid-v4-string",
+  "status": 200,
+  "data": ["Sheet1", "Summary", "Stats"]
+}
+```
+
+#### Health Check Response
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-04-22T12:34:56.789Z"
+}
+```
+
+#### Error Response
 
 ```json
 {
@@ -138,19 +167,32 @@ GET http://localhost:8080/1wXNAh6PVCDf5iSqKIhf1AwTH_GPtW_hjlnaFamEI-7o/1
 }
 ```
 
-### Health Check
+### Examples
+
+**Access a sheet by name:**
 
 ```
-GET http://localhost:8080/health
+GET http://localhost:8080/1wXNAh6PVCDf5iSqKIhf1AwTH_GPtW_hjlnaFamEI-7o/Sheet1
 ```
 
-Response:
+**Access a sheet by index:**
 
-```json
-{
-  "status": "ok",
-  "timestamp": "2025-04-22T12:34:56.789Z"
-}
+```
+GET http://localhost:8080/1wXNAh6PVCDf5iSqKIhf1AwTH_GPtW_hjlnaFamEI-7o/1
+```
+
+**Note:** The first sheet is indexed starting from **1**, not **0**.
+
+**Access a specific range from a sheet:**
+
+```
+GET http://localhost:8080/1wXNAh6PVCDf5iSqKIhf1AwTH_GPtW_hjlnaFamEI-7o/Sheet1?range=B2:D50
+```
+
+**List all sheets in a spreadsheet:**
+
+```
+GET http://localhost:8080/1wXNAh6PVCDf5iSqKIhf1AwTH_GPtW_hjlnaFamEI-7o/sheets
 ```
 
 ## ⚙️ Environment Variables
@@ -163,6 +205,12 @@ Response:
 | `CACHE_TTL_SECONDS`       | Time to live for cached responses in seconds | 60         |
 | `REQUEST_TIMEOUT_SECONDS` | Timeout for Google API requests in seconds   | 10         |
 | `RATE_LIMIT_PER_MINUTE`   | Maximum requests per minute per IP           | 60         |
+
+## ⚡ Performance Notes
+
+- The service implements memory caching to reduce API calls to Google
+- Rate limiting helps prevent abuse and ensures service stability
+- For production use, consider setting up a reverse proxy (like Nginx) in front of the service
 
 ## 📁 Directory Structure
 
@@ -179,12 +227,6 @@ opensheet/
 ├── Cargo.toml          # Dependencies and metadata
 └── README.md
 ```
-
-## ⚡ Performance Notes
-
-- The service implements memory caching to reduce API calls to Google
-- Rate limiting helps prevent abuse and ensures service stability
-- For production use, consider setting up a reverse proxy (like Nginx) in front of the service
 
 ## 🤝 Contributing Guidelines
 
