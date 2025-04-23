@@ -9,6 +9,7 @@ use uuid::Uuid;
 pub fn init_routes(cfg: &mut web::ServiceConfig) {
     cfg.route("/", web::get().to(index))
         .route("/health", web::get().to(health_check))
+        .route("/{id}", web::get().to(list_sheets))
         .route("/{id}/{sheet_name}", web::get().to(get_sheet));
 }
 
@@ -26,6 +27,68 @@ async fn health_check() -> Result<HttpResponse> {
         "status": "ok",
         "timestamp": chrono::Utc::now().to_rfc3339()
     })))
+}
+
+async fn list_sheets(
+    path: web::Path<String>,
+    data: web::Data<Arc<AppState>>,
+) -> Result<HttpResponse> {
+    let id = path.into_inner();
+    let transaction_code = uuid::Uuid::new_v4().to_string();
+
+    let metadata_url = format!(
+        "https://sheets.googleapis.com/v4/spreadsheets/{}?key={}",
+        id, data.google_api_key
+    );
+
+    let response = match data.client.get(&metadata_url).send().await {
+        Ok(resp) => resp,
+        Err(e) => {
+            return Ok(create_error_response(
+                &format!("Failed to fetch sheet metadata: {}", e),
+                500,
+                &transaction_code,
+            ));
+        }
+    };
+
+    let metadata: SheetMetadata = match response.json().await {
+        Ok(data) => data,
+        Err(e) => {
+            return Ok(create_error_response(
+                &format!("Failed to parse sheet metadata: {}", e),
+                500,
+                &transaction_code,
+            ));
+        }
+    };
+
+    if let Some(error) = metadata.error {
+        let status = error
+            .status
+            .and_then(|s| s.parse::<u16>().ok())
+            .unwrap_or(400);
+        return Ok(create_error_response(
+            &error.message,
+            status,
+            &transaction_code,
+        ));
+    }
+
+    let sheet_names: Vec<String> = metadata
+        .sheets
+        .into_iter()
+        .map(|sheet| sheet.properties.title)
+        .collect();
+
+    let formatted_response = ApiResponse {
+        transaction_code,
+        status: 200,
+        data: sheet_names,
+    };
+
+    let json = serde_json::to_string(&formatted_response).unwrap();
+    Ok(build_success_response(&json, data.cache_ttl.as_secs()))
 }
 
 async fn get_sheet(
