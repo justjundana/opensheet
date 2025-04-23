@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.0] - 2025-04-23
+
+### Added
+
+- **Custom Range Query Support**:  
+  Clients can now specify a custom cell range using the `?range=` query parameter (e.g., `?range=A2:F100`) when requesting sheet data.  
+  If the query is not provided, the default range `A1:ZZ` is used automatically.  
+  This gives clients more control and improves performance when working with large spreadsheets.
+
+- **List Sheets Endpoint**:  
+  A new endpoint `GET /{spreadsheet_id}/sheets` is available to list all sheet names in a given spreadsheet.  
+  Useful for dynamically determining available sheets without needing to know their names or positions in advance.
+
+---
+
 ## [1.0.0] - 2025-04-23
 
 ### Added
