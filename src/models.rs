@@ -71,3 +71,8 @@ pub struct Sheet {
 pub struct SheetProperties {
     pub title: String,
 }
+
+#[derive(Deserialize)]
+pub struct SheetQuery {
+    pub range: Option<String>,
+}

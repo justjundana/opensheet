@@ -1,4 +1,4 @@
-use crate::models::{ApiResponse, AppState, SheetsApiResponse};
+use crate::models::{ApiResponse, AppState, SheetMetadata, SheetQuery, SheetsApiResponse};
 use crate::services::{get_sheet_name, process_sheet_data};
 use crate::utils::{build_success_response, create_error_response};
 use actix_web::{web, HttpRequest, HttpResponse, Result};
@@ -30,10 +30,13 @@ async fn health_check() -> Result<HttpResponse> {
 
 async fn get_sheet(
     path: web::Path<(String, String)>,
+    query: web::Query<SheetQuery>,
     data: web::Data<Arc<AppState>>,
     req: HttpRequest,
 ) -> Result<HttpResponse> {
     let (id, sheet_name) = path.into_inner();
+    let range_param = query.range.clone();
+
     let ip = req
         .peer_addr()
         .map(|addr| addr.ip().to_string())
@@ -71,7 +74,13 @@ async fn get_sheet(
         }
     };
 
-    let range = format!("{}!A1:ZZ", urlencoding::encode(&sheet));
+    // Smart range: custom if provided, else default
+    let range = if let Some(custom_range) = range_param {
+        format!("{}!{}", urlencoding::encode(&sheet), custom_range)
+    } else {
+        format!("{}!A1:ZZ", urlencoding::encode(&sheet))
+    };
+
     let api_url = format!(
         "https://sheets.googleapis.com/v4/spreadsheets/{}/values/{}?key={}",
         id, range, data.google_api_key
