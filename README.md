@@ -167,6 +167,10 @@ GET http://localhost:8080/health
 }
 ```
 
+### Caching Behavior
+
+Responses are cached for 60 seconds in order to improve performance and to avoid hitting Google Sheets' rate limits. This means it might take up to 60 seconds for fresh edits to your Google Sheet to show up in the API response.
+
 ### Examples
 
 **Access a sheet by name:**
